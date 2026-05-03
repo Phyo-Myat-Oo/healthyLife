@@ -328,19 +328,12 @@ Query: ${query || 'General health improvement'}`;
     const prompt = `You are a health and wellness AI. Given this user profile:\n${userProfile}\n\nProvide a response in JSON only (no markdown, no explanation):\n{\n  "diet": "personalised diet plan (3-5 bullet points using • character)",\n  "workout": "workout plan (3-5 bullet points using • character)",\n  "wellness": "sleep & mood tips (3-4 points using • character)",\n  "gym": "general gym advice and what to look for based on their goals"\n}`;
 
     try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
+      const res = await fetch('/plan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 1000,
-          messages: [{ role: 'user', content: prompt }]
-        })
+        body: JSON.stringify({ prompt: prompt })
       });
-      const data = await res.json();
-      const raw = data.content.map(i => i.text || '').join('');
-      const clean = raw.replace(/```json|```/g, '').trim();
-      const result = JSON.parse(clean);
+      const result = await res.json();
 
       document.getElementById('out-diet').textContent = result.diet || '—';
       document.getElementById('out-workout').textContent = result.workout || '—';
@@ -348,6 +341,7 @@ Query: ${query || 'General health improvement'}`;
       document.getElementById('out-gym').textContent = result.gym || '—';
       document.getElementById('outputs').classList.add('visible');
     } catch (e) {
+      console.error(e);
       alert('Something went wrong. Please try again.');
     }
 
