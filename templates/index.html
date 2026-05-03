@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Health Agent</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #f4f3ee;
+      color: #1a1a1a;
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+      background: #ffffff;
+      border-radius: 16px;
+      border: 0.5px solid #ddd;
+      padding: 2rem 2.5rem;
+    }
+
+    h1 {
+      font-size: 22px;
+      font-weight: 500;
+      margin-bottom: 0.25rem;
+      color: #111;
+    }
+
+    .subtitle {
+      font-size: 14px;
+      color: #888;
+      margin-bottom: 2rem;
+    }
+
+    .section-title {
+      font-size: 11px;
+      font-weight: 500;
+      color: #999;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      margin: 1.75rem 0 0.75rem;
+      border-top: 0.5px solid #e8e8e8;
+      padding-top: 1.25rem;
+    }
+
+    .section-title:first-of-type { border-top: none; margin-top: 0; padding-top: 0; }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+
+    .field { display: flex; flex-direction: column; gap: 5px; }
+
+    label.lbl {
+      font-size: 12px;
+      color: #777;
+      font-weight: 400;
+    }
+
+    input[type="number"],
+    select,
+    textarea {
+      width: 100%;
+      padding: 8px 10px;
+      font-size: 14px;
+      border: 0.5px solid #ddd;
+      border-radius: 8px;
+      background: #fff;
+      color: #111;
+      outline: none;
+      transition: border-color 0.15s;
+      font-family: inherit;
+    }
+
+    input[type="number"]:focus,
+    select:focus,
+    textarea:focus {
+      border-color: #378add;
+      box-shadow: 0 0 0 3px rgba(55,138,221,0.1);
+    }
+
+    textarea { resize: vertical; min-height: 72px; }
+
+    /* BMI bar */
+    .bmi-wrap { margin-top: 12px; display: none; }
+    .bmi-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 5px; }
+    .bmi-lbl { font-size: 12px; color: #999; }
+    .bmi-val { font-size: 14px; font-weight: 500; color: #111; }
+    .bmi-track { background: #eee; border-radius: 999px; height: 6px; overflow: hidden; }
+    .bmi-fill { height: 100%; border-radius: 999px; transition: width 0.4s ease, background 0.4s ease; }
+    .bmi-scale { display: flex; justify-content: space-between; font-size: 11px; color: #bbb; margin-top: 4px; }
+
+    /* Radio pills */
+    .radio-group { display: flex; gap: 8px; flex-wrap: wrap; }
+    .radio-pill {
+      display: flex; align-items: center; gap: 6px;
+      padding: 6px 16px;
+      border-radius: 999px;
+      border: 0.5px solid #ddd;
+      cursor: pointer;
+      font-size: 13px;
+      color: #444;
+      background: #fff;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+      user-select: none;
+    }
+    .radio-pill input[type="radio"] { display: none; }
+    .radio-pill.checked {
+      background: #e6f1fb;
+      border-color: #378add;
+      color: #185fa5;
+      font-weight: 500;
+    }
+
+    /* Time row */
+    .time-row { display: flex; align-items: flex-end; gap: 10px; }
+    .time-row .arrow { font-size: 14px; color: #bbb; padding-bottom: 8px; }
+    .sleep-dur { font-size: 12px; color: #999; padding-bottom: 10px; min-width: 60px; text-align: right; }
+
+    /* Submit button */
+    .submit-btn {
+      margin-top: 1.75rem;
+      width: 100%;
+      padding: 13px;
+      font-size: 15px;
+      font-weight: 500;
+      border-radius: 10px;
+      background: #185fa5;
+      border: none;
+      color: #fff;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+      font-family: inherit;
+    }
+    .submit-btn:hover { opacity: 0.88; }
+    .submit-btn:active { transform: scale(0.99); }
+    .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+	
+	/* Outputs */
+    .outputs { display: none; margin-top: 1.75rem; }
+    .outputs.visible { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .out-card {
+      background: #f8f8f6;
+      border-radius: 12px;
+      border: 0.5px solid #e5e5e5;
+      padding: 1rem 1.25rem;
+    }
+    .out-title { font-size: 11px; font-weight: 500; color: #999; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 8px; }
+    .out-body { font-size: 13px; color: #333; line-height: 1.65; white-space: pre-wrap; }
+
+    /* Spinner */
+    .spinner {
+      display: inline-block;
+      width: 14px; height: 14px;
+      border: 2px solid rgba(255,255,255,0.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 520px) {
+      .container { padding: 1.5rem 1.25rem; }
+      .grid-2, .grid-3, .outputs.visible { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Health Agent</h1>
+  <p class="subtitle">Enter your details to get a personalised plan.</p>
+
+  <!-- Body Stats -->
+  <div class="section-title">Body stats</div>
+  <div class="grid-3">
+    <div class="field"><label class="lbl">Weight (kg)</label><input type="number" id="weight" placeholder="70" min="20" max="300"></div>
+    <div class="field"><label class="lbl">Height (cm)</label><input type="number" id="height" placeholder="170" min="100" max="250"></div>
+    <div class="field"><label class="lbl">Age</label><input type="number" id="age" placeholder="25" min="1" max="120"></div>
+  </div>
+
+  <div class="bmi-wrap" id="bmi-wrap">
+    <div class="bmi-header">
+      <span class="bmi-lbl">BMI</span>
+      <span class="bmi-val" id="bmi-val">—</span>
+    </div>
+    <div class="bmi-track"><div class="bmi-fill" id="bmi-fill" style="width:0%"></div></div>
+    <div class="bmi-scale"><span>Underweight &lt;18.5</span><span>Normal 18.5–24.9</span><span>Overweight 25+</span></div>
+  </div>
+
+  <!-- Profile -->
+  <div class="section-title">Profile</div>
+  <div class="field" style="margin-bottom:14px;">
+    <label class="lbl">Gender</label>
+    <div class="radio-group" id="gender-group">
+      <label class="radio-pill checked" id="pill-Male"><input type="radio" name="gender" value="Male" checked> Male</label>
+      <label class="radio-pill" id="pill-Female"><input type="radio" name="gender" value="Female"> Female</label>
+      <label class="radio-pill" id="pill-Other"><input type="radio" name="gender" value="Other"> Other</label>
+    </div>
+  </div>
+  <div class="grid-2">
+    <div class="field">
+      <label class="lbl">Activity level</label>
+      <select id="activity">
+        <option>Sedentary</option>
+        <option>Lightly Active</option>
+        <option>Active</option>
+        <option>Very Active</option>
+      </select>
+    </div>
+    <div class="field"><label class="lbl">Target weight (kg)</label><input type="number" id="target-weight" placeholder="65" min="20" max="300"></div>
+  </div>
+  <!-- Sleep -->
+  <div class="section-title">Sleep schedule</div>
+  <div class="time-row">
+    <div class="field" style="flex:1">
+      <label class="lbl">Sleep time</label>
+      <select id="sleep-time">
+        <option value="20">8 PM</option><option value="21">9 PM</option>
+        <option value="22" selected>10 PM</option><option value="23">11 PM</option>
+        <option value="0">12 AM</option><option value="1">1 AM</option><option value="2">2 AM</option>
+      </select>
+    </div>
+    <span class="arrow">→</span>
+    <div class="field" style="flex:1">
+      <label class="lbl">Wake time</label>
+      <select id="wake-time">
+        <option value="4">4 AM</option><option value="5">5 AM</option>
+        <option value="6" selected>6 AM</option><option value="7">7 AM</option>
+        <option value="8">8 AM</option><option value="9">9 AM</option><option value="10">10 AM</option>
+      </select>
+    </div>
+    <div class="sleep-dur" id="sleep-dur">8h sleep</div>
+  </div>
+
+  <!-- Health & Goals -->
+  <div class="section-title">Health &amp; goals</div>
+  <div class="field" style="margin-bottom:14px;">
+    <label class="lbl">Health conditions</label>
+    <textarea id="health-cond" placeholder="e.g. diabetes, knee injury, hypertension..."></textarea>
+  </div>
+  <div class="field">
+    <label class="lbl">Your question / goal</label>
+    <textarea id="query" placeholder="e.g. I want to lose 5kg in 3 months while building muscle..."></textarea>
+  </div>
+
+  <button class="submit-btn" id="submit-btn" onclick="handleSubmit()">Get my health plan</button>
+
+  <!-- Outputs -->
+  <div class="outputs" id="outputs">
+    <div class="out-card"><div class="out-title">Diet plan</div><div class="out-body" id="out-diet">—</div></div>
+    <div class="out-card"><div class="out-title">Workout plan</div><div class="out-body" id="out-workout">—</div></div>
+    <div class="out-card"><div class="out-title">Sleep &amp; mood tips</div><div class="out-body" id="out-wellness">—</div></div>
+    <div class="out-card"><div class="out-title">Nearby gyms</div><div class="out-body" id="out-gym">—</div></div>
+  </div>
+</div>
+
+<script>
+  /* BMI */
+  function calcBMI() {
+    const w = parseFloat(document.getElementById('weight').value);
+    const h = parseFloat(document.getElementById('height').value);
+    const wrap = document.getElementById('bmi-wrap');
+    if (!w || !h) { wrap.style.display = 'none'; return; }
+    const bmi = w / ((h / 100) ** 2);
+    wrap.style.display = 'block';
+    document.getElementById('bmi-val').textContent = bmi.toFixed(1);
+    const pct = Math.min(100, Math.max(0, ((bmi - 10) / 30) * 100));
+    const fill = document.getElementById('bmi-fill');
+    fill.style.width = pct + '%';
+    fill.style.background = bmi < 18.5 ? '#378ADD' : bmi < 25 ? '#1D9E75' : bmi < 30 ? '#EF9F27' : '#E24B4A';
+  }
+  document.getElementById('weight').addEventListener('input', calcBMI);
+  document.getElementById('height').addEventListener('input', calcBMI);
+
+  /* Gender pills */
+  document.querySelectorAll('input[name=gender]').forEach(r => {
+    r.addEventListener('change', () => {
+      document.querySelectorAll('.radio-pill').forEach(p => p.classList.remove('checked'));
+      document.getElementById('pill-' + r.value).classList.add('checked');
+    });
+  });
+
+  /* Sleep duration */
+  function updateSleep() {
+    const s = parseInt(document.getElementById('sleep-time').value);
+    const w = parseInt(document.getElementById('wake-time').value);
+    const dur = (w + 24 - s) % 24;
+    document.getElementById('sleep-dur').textContent = dur + 'h sleep';
+  }
+  document.getElementById('sleep-time').addEventListener('change', updateSleep);
+  document.getElementById('wake-time').addEventListener('change', updateSleep);
+  updateSleep();
+  
+  /* Submit */
+  async function handleSubmit() {
+    const weight = document.getElementById('weight').value;
+    const height = document.getElementById('height').value;
+    const age = document.getElementById('age').value;
+    const gender = document.querySelector('input[name=gender]:checked').value;
+    const activity = document.getElementById('activity').value;
+    const targetWeight = document.getElementById('target-weight').value;
+    const sleepTime = document.getElementById('sleep-time').value;
+    const wakeTime = document.getElementById('wake-time').value;
+    const healthCond = document.getElementById('health-cond').value;
+    const query = document.getElementById('query').value;
+
+    if (!weight || !height || !age) { alert('Please fill in weight, height, and age.'); return; }
+
+    const bmi = (weight / ((height / 100) ** 2)).toFixed(1);
+    const btn = document.getElementById('submit-btn');
+    btn.innerHTML = '<span class="spinner"></span>Generating your plan...';
+    btn.disabled = true;
+
+    const userProfile = `Weight: ${weight}kg, Height: ${height}cm, BMI: ${bmi}
+Age: ${age}, Gender: ${gender}, Activity: ${activity}
+Target weight: ${targetWeight || 'not specified'}kg
+Sleep: ${sleepTime}:00 - ${wakeTime}:00
+Health conditions: ${healthCond || 'None'}
+Query: ${query || 'General health improvement'}`;
+
+    const prompt = `You are a health and wellness AI. Given this user profile:\n${userProfile}\n\nProvide a response in JSON only (no markdown, no explanation):\n{\n  "diet": "personalised diet plan (3-5 bullet points using • character)",\n  "workout": "workout plan (3-5 bullet points using • character)",\n  "wellness": "sleep & mood tips (3-4 points using • character)",\n  "gym": "general gym advice and what to look for based on their goals"\n}`;
+
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 1000,
+          messages: [{ role: 'user', content: prompt }]
+        })
+      });
+      const data = await res.json();
+      const raw = data.content.map(i => i.text || '').join('');
+      const clean = raw.replace(/```json|```/g, '').trim();
+      const result = JSON.parse(clean);
+
+      document.getElementById('out-diet').textContent = result.diet || '—';
+      document.getElementById('out-workout').textContent = result.workout || '—';
+      document.getElementById('out-wellness').textContent = result.wellness || '—';
+      document.getElementById('out-gym').textContent = result.gym || '—';
+      document.getElementById('outputs').classList.add('visible');
+    } catch (e) {
+      alert('Something went wrong. Please try again.');
+    }
+
+    btn.innerHTML = 'Get my health plan';
+    btn.disabled = false;
+  }
+</script>
+</body>
+</html>
